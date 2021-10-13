@@ -1,0 +1,20 @@
+---
+argument_specs:
+  main:
+    short_description: Install/uninstall additional Redis service
+    options:
+      redis_service_name:
+        type: "str"
+        required: false
+        default: "redis-qserver"
+        description: "The name of the additional Redis service to install"
+      redis_port:
+        type: "int"
+        required: false
+        default: 60590
+        description: "The port number for the additional Redis service"
+      remove_service:
+        type: "bool"
+        required: false
+        default: false
+        description: "true/false - install/uninstall the additional service"

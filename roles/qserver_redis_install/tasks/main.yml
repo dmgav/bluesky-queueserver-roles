@@ -1,0 +1,123 @@
+# Input parameters
+- set_fact:
+    redis_service_name: "{{ redis_service_name | default('redis-qserver') }}"
+    redis_port: "{{ redis_port | default(60590) }}"
+    remove_service: "{{ remove_service | default(false) }}"
+
+# Paths to files to be installed
+- set_fact:
+    conf_file_path: "/etc/redis/{{ redis_service_name }}.conf"
+    conf_file_slink: "/etc/{{ redis_service_name }}.conf"
+    service_file_path: "/usr/lib/systemd/system/{{ redis_service_name }}.service"
+
+- name: "Install and configure two Redis instances"
+  block:
+
+    # ==========================================================================================
+    # Install Redis package
+    - name: "Install Redis package"
+      ansible.builtin.package:
+        name: redis
+        state: present
+      register: package_check
+
+    - name: "Print result"
+      debug:
+          msg: Redis package was successfully installed
+      when: package_check is succeeded
+
+    # ==========================================================================================
+    # The first instance of Redis (redis) at the standard port.
+    - name: Start 'redis' service
+      ansible.builtin.systemd:
+        daemon_reload: true
+        enabled: true
+        state: started
+        name: redis
+
+    - name: Check state of 'redis.service'
+      include_role:
+        name: service_display_state
+      vars:
+        service_name: "redis"
+
+    # ==========================================================================================
+    # The second instance of Redis (Queue Server) at a different port.
+    - debug:
+        msg: Configure the second instance of Redis
+
+    - name: "Generate '.conf' file from template: '{{ conf_file_path }}'"
+      ansible.builtin.template:
+          src: "redis-qserver.conf"
+          dest: "{{ conf_file_path }}"
+          owner: redis
+          group: root
+          mode: "0640"
+      with_items:
+        - { service_name: "{{ redis_service_name }}", redis_port: "{{ redis_port }}"}
+
+    - name: "Create sym link to the '.conf' file '{{ conf_file_slink }}'"
+      ansible.builtin.file:
+          src: "{{ conf_file_path }}"
+          dest: "{{ conf_file_slink }}"
+          state: link
+          mode: "0777"
+          owner: root
+          group: root
+
+    - name: Set correct file ownership of the '.conf' file
+      ansible.builtin.file:
+          path: "{{ conf_file_path }}"
+          owner: redis
+          group: root
+          mode: "0640"
+
+    - name: "Generate '.service' file from template: '{{ service_file_path }}'"
+      ansible.builtin.template:
+          src: "redis-qserver.service"
+          dest: "{{ service_file_path }}"
+          owner: root
+          group: root
+          mode: "0644"
+      with_items:
+        - { service_name: "{{ redis_service_name }}" }
+
+    - name: "Start (reload and restart) '{{ redis_service_name }}' service"
+      ansible.builtin.systemd:
+        daemon_reload: true
+        enabled: true
+        state: restarted
+        name: "{{ redis_service_name }}"
+
+    - name: Check state of 'redis.service'
+      include_role:
+        name: service_display_state
+      vars:
+        service_name: "{{ redis_service_name }}"
+
+  when: not remove_service
+
+- name: "Uninstall the second (Queue Server) Redis service"
+  block:
+    - debug:
+        msg: >
+          "Uninstalling '{{ redis_service_name }}' Redis service."
+          "Logs and dumped database will remain on the server."
+
+    - name: "Stop '{{ redis_service_name }}' service"
+      ansible.builtin.systemd:
+        enabled: false
+        state: stopped
+        name: "{{ redis_service_name }}"
+      ignore_errors: yes
+
+    - name: Remove files
+      ansible.builtin.file:
+        dest: "{{ item }}"
+        state: absent
+      loop:
+        - "{{ conf_file_slink }}"
+        - "{{ conf_file_path }}"
+        - "{{ service_file_path }}"
+
+  when: remove_service

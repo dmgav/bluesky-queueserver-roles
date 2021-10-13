@@ -1,0 +1,21 @@
+{#
+  External parameters:
+    'item.service_name' (e.g. item.service_name="redis-qserver")
+#}
+[Unit]
+Description=Redis persistent key-value database
+After=network.target
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+ExecStart=/usr/bin/redis-server /etc/redis/{{ item.service_name }}.conf --daemonize no --supervised systemd
+ExecStop=/usr/libexec/redis-shutdown {{ item.service_name }}
+Type=notify
+User=redis
+Group=redis
+RuntimeDirectory={{ item.service_name }}
+RuntimeDirectoryMode=0755
+
+[Install]
+WantedBy=multi-user.target

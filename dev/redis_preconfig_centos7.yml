@@ -1,0 +1,13 @@
+---
+# Run the sequence of commands that are necessary to preconfigure CentOS 7
+#   for installation of Redis. Redis can be installed as
+#   '$ yum install redis' after this.
+- name: Configure CentOS 7 for installation of Redis
+  hosts: all
+  tasks:
+    - name: Installing packages
+      ansible.builtin.shell: |
+        yum -y install epel-release yum-utils
+        yum -y install http://rpms.remirepo.net/enterprise/remi-release-7.rpm
+        yum-config-manager --enable remi
+...

@@ -1,0 +1,7 @@
+---
+- name: Install Redis
+  hosts: all
+  roles:
+    - qserver_redis_install
+  vars:
+      remove_service: true

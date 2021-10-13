@@ -1,0 +1,22 @@
+# External variables: 'service_name'.
+- set_fact:
+    service_name: "{{ service_name | mandatory}}"
+
+- set_fact:
+    service_name_full: "{{ service_name }}.service"
+
+- name: Read state of the service
+  ansible.builtin.service_facts:
+  register: services_state
+
+- set_fact:
+    sstate: "{{ services_state['ansible_facts']['services'][service_name_full] }}"
+
+- set_fact:
+    redis_state: "{{ sstate['state'] }}"
+    redis_status: "{{ sstate['status'] }}"
+    redis_name: "{{ sstate['name'] }}"
+
+- name: Report the state of 'redis' service
+  debug:
+    msg: "Service: '{{ redis_name }}'. State: '{{ redis_state }}'. Status: '{{ redis_status }}'."

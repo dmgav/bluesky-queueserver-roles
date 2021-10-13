@@ -1,0 +1,8 @@
+Running the playbooks:
+
+ansible-playbook qserver_redis_install.yml -l selected -i dev/hosts -b
+ansible-playbook qserver_redis_uninstall.yml -l selected -i dev/hosts -b
+
+Development playbooks:
+
+ansible-playbook dev/redis_preconfig_centos7.yml -l selected -i dev/hosts -b
