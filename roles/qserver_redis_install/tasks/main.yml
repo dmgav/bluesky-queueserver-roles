@@ -4,11 +4,16 @@
     redis_port: "{{ redis_port | default(60590) }}"
     remove_service: "{{ remove_service | default(false) }}"
 
+- set_fact:
+    # services_dir: "/usr/lib/systemd/system"
+    services_dir: "/etc/systemd/system"
+    redis_conf_dir: "/etc/redis"
+
 # Paths to files to be installed
 - set_fact:
-    conf_file_path: "/etc/redis/{{ redis_service_name }}.conf"
+    conf_file_path: "{{ redis_conf_dir }}/{{ redis_service_name }}.conf"
     conf_file_slink: "/etc/{{ redis_service_name }}.conf"
-    service_file_path: "/usr/lib/systemd/system/{{ redis_service_name }}.service"
+    service_file_path: "{{ services_dir }}/{{ redis_service_name }}.service"
 
 - name: "Install and configure two Redis instances"
   block:
