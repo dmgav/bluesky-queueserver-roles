@@ -1,0 +1,5 @@
+---
+- name: Install Bluesky Queue Server Manager service
+  hosts: all
+  roles:
+    - qserver_manager_install
