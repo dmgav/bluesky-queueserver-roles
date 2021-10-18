@@ -1,0 +1,8 @@
+---
+- name: Set soft link to 'profile_collection' directory
+  hosts: all
+  roles:
+    - bluesky_profile_collection_link
+  vars:
+    profile_collection_path: "/home/vagrant/profile_collection"
+    remove_link: true

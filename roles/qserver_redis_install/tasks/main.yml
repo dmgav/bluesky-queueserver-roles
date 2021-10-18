@@ -5,8 +5,8 @@
     remove_service: "{{ remove_service | default(false) }}"
 
 - set_fact:
-    # services_dir: "/usr/lib/systemd/system"
-    services_dir: "/etc/systemd/system"
+    # services_dir: "/usr/lib/systemd/system"  # Directory where 'redis.service' is located
+    services_dir: "/etc/systemd/system"  # Standard directory for services
     redis_conf_dir: "/etc/redis"
 
 # Paths to files to be installed

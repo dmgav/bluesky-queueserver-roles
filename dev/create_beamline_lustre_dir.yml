@@ -1,0 +1,19 @@
+---
+# Create the simulated Lustre beamline `profile_collection` directory
+#   Used for testing of the script creating symlinks to profile collection directory.
+- name: Configure CentOS 7 for installation of Redis
+  hosts: all
+  tasks:
+    - set_fact:
+        beamline_lustre_dir: "{{ beamline_lustre_dir | mandatory }}"
+
+    - set_fact:
+        lustre_dir_path: "/nsls2/data/{{ beamline_lustre_dir }}/shared/config/profile_collection"
+
+    - name: "Create the directory '{{ lustre_dir_path }}'"
+      ansible.builtin.file:
+            path: "{{ lustre_dir_path }}"
+            state: directory
+            mode: 0775
+            owner: "{{ beamline_user }}"
+            group: "{{ beamline_user }}"

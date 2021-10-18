@@ -1,0 +1,72 @@
+# Input parameters
+- set_fact:
+    beamline_user: "{{ beamline_user | mandatory }}"
+    beamline_lustre_dir: "{{ beamline_lustre_dir | default('') }}"
+    profile_collection_path: "{{ profile_collection_path | default('') }}"
+    remove_link: "{{ remove_link | default(false) }}"
+
+- set_fact:
+    profile_collection_local_path: "/home/{{ beamline_user }}/.ipython/profile_collection"
+
+- name: "Install soft link to 'profile_collection' directory"
+  block:
+    - name: "Generate default 'profile_collection_path' if 'beamline_lustre_dir' is set"
+      set_fact:
+        profile_collection_path: "/nsls2/data/{{ beamline_lustre_dir }}/shared/config/profile_collection"
+      when: (profile_collection_path == "") and (beamline_lustre_dir != "")
+
+    - name: "Check if 'profile_collection_path' is set"
+      ansible.builtin.fail:
+        msg: "The parameter 'profile_collection_path' is not set"
+      when: profile_collection_path == ""
+
+    - name: "Get info on currently existing 'profile_collection' directory: '{{ profile_collection_local_path }}'"
+      ansible.builtin.stat:
+        path: "{{ profile_collection_local_path }}"
+      register: file_details
+
+    - name: "Fail if 'profile_collection' exists and it is not a link"
+      ansible.builtin.fail:
+        msg: "The directory '{{ profile_collection_local_path }}' exists. Delete or rename the directory and restart the script"
+      when: file_details.stat.exists and (file_details.stat.islnk == false)
+
+    - name: "Check if target 'profile_collection' directory exists: '{{ profile_collection_path }}'"
+      ansible.builtin.stat:
+        path: "{{ profile_collection_path }}"
+      register: file_details
+
+    - name: "Fail if the target 'profile_collection' directory does not exist"
+      ansible.builtin.fail:
+        msg: "The directory '{{ profile_collection_path }}' does not exist."
+      when: not file_details.stat.exists or (file_details.stat.isdir == false)
+
+    - name: "Create soft link to '{{ profile_collection_path }}'"
+      ansible.builtin.file:
+        src: "{{ profile_collection_path }}"
+        dest: "{{ profile_collection_local_path }}"
+        state: link
+        follow: false  # Owner/group are set for the symlink, not destination dir
+        owner: "{{ beamline_user }}"
+        group: "{{ beamline_user }}"
+
+  when: remove_link is false
+
+- name: "Remove soft link to 'profile_collection'"
+  block:
+
+    - name: "Check if the soft link exists: '{{ profile_collection_local_path }}'"
+      ansible.builtin.stat:
+        path: "{{ profile_collection_local_path }}"
+      register: file_details
+
+    - name: "Fail if '{{ profile_collection_local_path }}' is not a link"
+      ansible.builtin.fail:
+        msg: "'{{ profile_collection_local_path }}' is not a link"
+      when: file_details.stat.exists and (file_details.stat.islnk == false)
+
+    - name: "Delete soft link: '{{ profile_collection_local_path }}'"
+      ansible.builtin.file:
+        path: "{{ profile_collection_local_path }}"
+        state: absent
+
+  when: remove_link is true

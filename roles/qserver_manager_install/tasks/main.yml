@@ -1,119 +1,70 @@
 # Input parameters
 - set_fact:
-    redis_service_name: "{{ redis_service_name | default('redis-qserver') }}"
+    qserver_service_name: "{{ qserver_service_name | default('bluesky-qserver-re-manager') }}"
+    beamline_user: "{{ beamline_user | mandatory }}"
+    redis_server: "{{ redis_server | default('localhost') }}"
     redis_port: "{{ redis_port | default(60590) }}"
     remove_service: "{{ remove_service | default(false) }}"
 
 - set_fact:
-    # services_dir: "/usr/lib/systemd/system"
-    services_dir: "/etc/systemd/system"
-    redis_conf_dir: "/etc/redis"
+    # services_dir: "/usr/lib/systemd/system"  # Directory where 'redis.service' is located
+    services_dir: "/etc/systemd/system"  # Standard directory for services
+    redis_addr: "{{ redis_server }}:{{ redis_port }}"
 
 # Paths to files to be installed
 - set_fact:
-    conf_file_path: "{{ redis_conf_dir }}/{{ redis_service_name }}.conf"
-    conf_file_slink: "/etc/{{ redis_service_name }}.conf"
-    service_file_path: "{{ services_dir }}/{{ redis_service_name }}.service"
+    service_file_path: "{{ services_dir }}/{{ qserver_service_name }}.service"
+    script_file_path: "{{ services_dir }}/{{ qserver_service_name }}.sh"
 
-- name: "Install and configure two Redis instances"
+- name: "Install and start Bluesky Queue Server RE Manager"
   block:
-
-    # ==========================================================================================
-    # Install Redis package
-    - name: "Install Redis package"
-      ansible.builtin.package:
-        name: redis
-        state: present
-      register: package_check
-
-    - name: "Print result"
-      debug:
-          msg: Redis package was successfully installed
-      when: package_check is succeeded
-
-    # ==========================================================================================
-    # The first instance of Redis (redis) at the standard port.
-    - name: Start 'redis' service
-      ansible.builtin.systemd:
-        daemon_reload: true
-        enabled: true
-        state: started
-        name: redis
-
-    - name: Check state of 'redis.service'
-      include_role:
-        name: service_display_state
-      vars:
-        service_name: "redis"
-
-    # ==========================================================================================
-    # The second instance of Redis (Queue Server) at a different port.
-    - debug:
-        msg: Configure the second instance of Redis
-
-    - name: "Generate '.conf' file from template: '{{ conf_file_path }}'"
+    - name: "Generate script '.sh' file from template: '{{ script_file_path }}'"
       ansible.builtin.template:
-          src: "redis-qserver.conf"
-          dest: "{{ conf_file_path }}"
-          owner: redis
-          group: root
-          mode: "0640"
+        src: "bluesky-qserver-re-manager.sh"
+        dest: "{{ script_file_path }}"
+        owner: root
+        group: root
+        mode: "0775"
       with_items:
-        - { service_name: "{{ redis_service_name }}", redis_port: "{{ redis_port }}"}
-
-    - name: "Create sym link to the '.conf' file '{{ conf_file_slink }}'"
-      ansible.builtin.file:
-          src: "{{ conf_file_path }}"
-          dest: "{{ conf_file_slink }}"
-          state: link
-          mode: "0777"
-          owner: root
-          group: root
-
-    - name: Set correct file ownership of the '.conf' file
-      ansible.builtin.file:
-          path: "{{ conf_file_path }}"
-          owner: redis
-          group: root
-          mode: "0640"
+        - {"redis_addr": "{{ redis_addr }}"}
 
     - name: "Generate '.service' file from template: '{{ service_file_path }}'"
       ansible.builtin.template:
-          src: "redis-qserver.service"
+          src: "bluesky-qserver-re-manager.service"
           dest: "{{ service_file_path }}"
           owner: root
           group: root
           mode: "0644"
       with_items:
-        - { service_name: "{{ redis_service_name }}" }
+        - { service_name: "{{ qserver_service_name }}",
+            script_path: "{{ script_file_path }}",
+            beamline_user: "{{ beamline_user }}" }
 
-    - name: "Start (reload and restart) '{{ redis_service_name }}' service"
+    - name: "Start (reload and start) '{{ qserver_service_name }}' service"
       ansible.builtin.systemd:
         daemon_reload: true
         enabled: true
-        state: restarted
-        name: "{{ redis_service_name }}"
+        state: started  # Restarting the service may be unsafe
+        name: "{{ qserver_service_name }}"
 
-    - name: Check state of 'redis.service'
+    - name: "Print the state of '{{ qserver_service_name }}'"
       include_role:
         name: service_display_state
       vars:
-        service_name: "{{ redis_service_name }}"
+        service_name: "{{ qserver_service_name }}"
 
   when: not remove_service
 
-- name: "Uninstall the second (Queue Server) Redis service"
+- name: "Uninstall Bluesky Queue Server RE Manager"
   block:
     - debug:
-        msg: >
-          "Uninstalling '{{ redis_service_name }}' Redis service."
-          "Logs and dumped database will remain on the server."
+        msg: "Uninstalling '{{ qserver_service_name }}' service."
 
-    - name: "Stop '{{ redis_service_name }}' service"
+    - name: "Stop '{{ qserver_service_name }}' service"
       ansible.builtin.systemd:
         enabled: false
         state: stopped
-        name: "{{ redis_service_name }}"
+        name: "{{ qserver_service_name }}"
       ignore_errors: yes
 
     - name: Remove files
@@ -121,8 +72,7 @@
         dest: "{{ item }}"
         state: absent
       loop:
-        - "{{ conf_file_slink }}"
-        - "{{ conf_file_path }}"
         - "{{ service_file_path }}"
+        - "{{ script_file_path }}"
 
   when: remove_service

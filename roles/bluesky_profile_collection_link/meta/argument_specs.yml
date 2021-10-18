@@ -1,0 +1,24 @@
+---
+argument_specs:
+  main:
+    short_description: Create/remove soft link to Bluesky 'profile_collection' on Lustre
+    options:
+      beamline_user:
+        type: "str"
+        required: true
+        description: "Beamline user (e.g. 'xf06id'), used to select the correct user directory and set file owner/group"
+      beamline_lustre_dir:
+        type: "str"
+        required: false
+        default: ""
+        description: "Beamline Lustre directory name at '/nsls/data', e.g. 'bmm'. Not needed if 'remove_link' is 'true'"
+      profile_collection_path:
+        type: "str"
+        required: false
+        default: ""
+        description: "Path to profile collection (optional). If '', then the path to the respective Luster directory is generated"
+      remove_link:
+        type: "bool"
+        required: false
+        default: false
+        description: "true/false - remove/create link, default is false"

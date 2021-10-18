@@ -1,0 +1,5 @@
+---
+- name: Set soft link to 'profile_collection' directory
+  hosts: all
+  roles:
+    - bluesky_profile_collection_link

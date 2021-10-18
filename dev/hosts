@@ -2,4 +2,19 @@
 server ansible_host=localhost ansible_port=2222
 
 [selected:vars]
+beamline_acronym=bmm
 ansible_user=vagrant
+beamline_port=vagrant
+beamline_user=vagrant
+bluesky_log_dir="/var/log/bluesky"
+bluesky_env_tag="2021-2.0"
+bluesky_extra_pythonpath=""
+bluesky_an_env_tag=""
+beamline_lustre_dir=bmm
+databroker_config_dir="/etc/databroker"
+beamline_system="local"
+nsls2_shared_accounts={"local": {"username": ["vagrant"]}}
+
+conda_env_path="/opt/conda_envs"
+
+shared_account=vagrant

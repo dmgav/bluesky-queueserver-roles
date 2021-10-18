@@ -13,10 +13,10 @@
     sstate: "{{ services_state['ansible_facts']['services'][service_name_full] }}"
 
 - set_fact:
-    redis_state: "{{ sstate['state'] }}"
-    redis_status: "{{ sstate['status'] }}"
-    redis_name: "{{ sstate['name'] }}"
+    sstate: "{{ sstate['state'] }}"
+    sstatus: "{{ sstate['status'] }}"
+    sname: "{{ sstate['name'] }}"
 
-- name: Report the state of 'redis' service
+- name: "Report the state of '{{ service_name }}' service"
   debug:
-    msg: "Service: '{{ redis_name }}'. State: '{{ redis_state }}'. Status: '{{ redis_status }}'."
+    msg: "Service: '{{ sname }}'. State: '{{ sstate }}'. Status: '{{ sstatus }}'."

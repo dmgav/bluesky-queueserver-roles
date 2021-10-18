@@ -1,0 +1,21 @@
+{#
+  External parameters:
+    'item.service_name' (e.g. item.service_name="redis-qserver")
+    'item.beamline_user' (e.g. item.beamline_user="xf08bm")
+    'item.script_path' (full path to the script file to run)
+#}
+[Unit]
+Description=Bluesky Queue Server - RE Manager
+Requires=network.target
+
+[Service]
+ExecStart="{{ item.script_path }}"
+
+Type=simple
+User={{ item.beamline_user }}
+Group={{ item.beamline_user }}
+RuntimeDirectory={{ item.service_name }}
+RuntimeDirectoryMode=0755
+
+[Install]
+WantedBy=multi-user.target
