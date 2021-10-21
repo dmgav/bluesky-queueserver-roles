@@ -9,22 +9,31 @@
 - set_fact:
     # services_dir: "/usr/lib/systemd/system"  # Directory where 'redis.service' is located
     services_dir: "/etc/systemd/system"  # Standard directory for services
+    services_script_dir: "/opt/bluesky/queueserver/bin"
     redis_addr: "{{ redis_server }}:{{ redis_port }}"
 
 # Paths to files to be installed
 - set_fact:
     service_file_path: "{{ services_dir }}/{{ qserver_service_name }}.service"
-    script_file_path: "{{ services_dir }}/{{ qserver_service_name }}.sh"
+    script_file_path: "{{ services_script_dir }}/{{ qserver_service_name }}.sh"
 
 - name: "Install and start Bluesky Queue Server RE Manager"
   block:
+    - name: "Create directory ''{{ services_script_dir }}'' for bluesky-queueserver-re-manager.sh"
+      ansible.builtin.file:
+        path: "{{ services_script_dir }}"
+        state: directory
+        owner: '{{ beamline_user }}'
+        group: '{{ beamline_user }}'
+        mode: "u=rwx,g=rwx,o-rwx"
+
     - name: "Generate script '.sh' file from template: '{{ script_file_path }}'"
       ansible.builtin.template:
         src: "bluesky-qserver-re-manager.sh"
         dest: "{{ script_file_path }}"
-        owner: root
-        group: root
-        mode: "0775"
+        owner: '{{ beamline_user }}'
+        group: '{{ beamline_user }}'
+        mode: "u=rx,g=rx,o-rwx"
       with_items:
         - {"redis_addr": "{{ redis_addr }}"}
 
@@ -34,7 +43,7 @@
           dest: "{{ service_file_path }}"
           owner: root
           group: root
-          mode: "0644"
+          mode: "u=rw,g=r,o=r"
       with_items:
         - { service_name: "{{ qserver_service_name }}",
             script_path: "{{ script_file_path }}",
